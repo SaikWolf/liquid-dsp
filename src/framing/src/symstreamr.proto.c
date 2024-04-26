@@ -255,3 +255,61 @@ int SYMSTREAMR(_write_samples)(SYMSTREAMR()  _q,
     return LIQUID_OK;
 }
 
+
+
+// fill buffer with samples
+int SYMSTREAMR(_null_buffer)(SYMSTREAMR() _q,
+                             unsigned int null)
+{
+    if (null == 0) return SYMSTREAMR(_fill_buffer)(_q);
+    if (_q->buf_index != _q->buf_size)
+        return liquid_error(LIQUID_EINT,"symstreamr%s_flush_samples(), buffer not empty\n", EXTENSION);
+
+    // reset counters
+    _q->buf_size  = 0;
+    _q->buf_index = 0;
+
+    // continue running until at least one sample is generated
+    while (!_q->buf_size) {
+        // generate base sample
+        TO symbol = 0,sample=0;
+        FIRINTERP(_execute)(_q->symstream->interp, symbol, _q->symstream->buf);
+        sample = _q->symstream->buf[_q->symstream->buf_index];
+        _q->symstream->buf_index = (_q->symstream->buf_index + 1) % _q->symstream->k;
+
+        // resample
+        MSRESAMP(_execute)(_q->resamp, &sample, 1, _q->buf, &_q->buf_size);
+    }
+    return LIQUID_OK;
+}
+
+// flush block of samples to output buffer
+//  _q      : synchronizer object
+//  _buf    : output buffer [size: _buf_len x 1]
+//  _buf_len: output buffer size
+int SYMSTREAMR(_flush_samples)(SYMSTREAMR()  _q,
+                              TO *         _buf,
+                              unsigned int _buf_len)
+{
+    float local_delay = SYMSTREAMR(_get_delay)(_q);
+    float diff = (float)(_buf_len) - local_delay;
+    if( diff <= 0. )
+        return liquid_error(LIQUID_EINT,"symstreamr%s_flush_samples() cannot flush\n",EXTENSION);
+    unsigned int turn_off_at = (unsigned int)diff;
+    unsigned int i;
+    for (i=0; i<_buf_len; i++) {
+        // check to see if buffer needs samples
+        if (_q->buf_index==_q->buf_size) {
+            if (SYMSTREAMR(_null_buffer)(_q, (unsigned int) i >= turn_off_at))
+                return liquid_error(LIQUID_EINT,"symstreamr%s_flush_samples(), could not fill internal buffer `2\n", EXTENSION);
+        }
+
+        // write output sample from internal buffer
+        _buf[i] = _q->buf[_q->buf_index];
+
+        // increment internal index
+        _q->buf_index++;
+    }
+    return LIQUID_OK;
+}
+

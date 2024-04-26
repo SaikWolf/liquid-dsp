@@ -52,6 +52,9 @@ class symstreamr : public object
     // write samples to buffer
     void generate(std::complex<float> * _buf, unsigned int _buf_len)
         { symstreamrcf_write_samples(q, _buf, _buf_len); }
+    // write samples to buffer
+    void burst(std::complex<float> * _buf, unsigned int _buf_len)
+        { symstreamrcf_flush_samples(q, _buf, _buf_len); }
 
   private:
     symstreamrcf q;
@@ -93,6 +96,16 @@ class symstreamr : public object
         return buf;
     }
 
+    py::array_t<std::complex<float>> py_burst(unsigned int _n)
+    {
+        // allocate output buffer
+        py::array_t<std::complex<float>> buf(_n);
+
+        // pass to top-level generate method
+        burst((std::complex<float>*) buf.request().ptr, _n);
+        return buf;
+    }
+
     //py::str get_ftype() const { return symstreamrcf_get_ftype(q); }
 #endif
 };
@@ -108,6 +121,13 @@ static void init_symstreamr(py::module &m)
             &symstreamr::py_generate,
             "generate a block of samples",
             py::arg("n")=256)
+        .def("burst",
+            &symstreamr::py_burst,
+            "generate a burst of samples",
+            py::arg("n")=256)
+        .def("reset",
+            &symstreamr::reset,
+            "reset the symstreamr")
         .def_property("gain",
             &symstreamr::get_gain,
             &symstreamr::set_gain,

@@ -6680,6 +6680,14 @@ float SYMSTREAMR(_get_delay)(SYMSTREAMR() _q);                              \
 int SYMSTREAMR(_write_samples)(SYMSTREAMR()  _q,                            \
                               TO *         _buf,                            \
                               unsigned int _buf_len);                       \
+                                                                            \
+/* Flush block of samples to output buffer                              */  \
+/*  _q      : synchronizer object                                       */  \
+/*  _buf    : output buffer, [size: _buf_len x 1]                       */  \
+/*  _buf_len: output buffer size                                        */  \
+int SYMSTREAMR(_flush_samples)(SYMSTREAMR()  _q,                            \
+                              TO *         _buf,                            \
+                              unsigned int _buf_len);                       \
 
 LIQUID_SYMSTREAMR_DEFINE_API(LIQUID_SYMSTREAMR_MANGLE_CFLOAT, liquid_float_complex)
 

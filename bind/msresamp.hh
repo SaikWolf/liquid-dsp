@@ -81,8 +81,8 @@ class msresamp : public object
         unsigned int num_written;
         execute((std::complex<float>*) info.ptr, nx,
                 (std::complex<float>*) buf_out.request().ptr, &num_written);
-        if (num_written != num_output)
-            throw std::runtime_error("output length did not match expected");
+        if (num_written > num_output)
+            throw std::runtime_error("output length did not match expected: " + std::to_string(num_output) + " < "  + std::to_string(num_written));
         return buf_out;
     }
 #endif
