@@ -75,14 +75,21 @@ class msresamp : public object
         unsigned int num_output = compute_output_length(nx);
 
         // allocate output buffer
-        py::array_t<std::complex<float>> buf_out(num_output);
+        py::array_t<std::complex<float>> buf_temp(2*num_output);
+        std::complex<float> *ptr_temp = (std::complex<float> *)buf_temp.request().ptr;
 
         // execute on data samples
         unsigned int num_written;
         execute((std::complex<float>*) info.ptr, nx,
-                (std::complex<float>*) buf_out.request().ptr, &num_written);
-        if (num_written > num_output)
-            throw std::runtime_error("output length did not match expected: " + std::to_string(num_output) + " < "  + std::to_string(num_written));
+                (std::complex<float>*) buf_temp.request().ptr, &num_written);
+
+        /// sanity checking
+        if (num_written > 2*num_output)
+            throw std::runtime_error("output length did not match expected: " + std::to_string(2*num_output) + " < "  + std::to_string(num_written));
+
+        py::array_t<std::complex<float>> buf_out(num_written);
+        std::complex<float> *ptr_out = (std::complex<float> *)buf_out.request().ptr;
+        memcpy(ptr_out,ptr_temp,num_written*sizeof(std::complex<float>));
         return buf_out;
     }
 #endif
