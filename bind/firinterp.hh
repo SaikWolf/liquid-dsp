@@ -71,33 +71,24 @@ class firinterp : public object
 
 #ifdef LIQUID_PYTHONLIB
   public:
-#if 0
     // python-specific constructor with keyword arguments
     firinterp(std::string ftype, py::kwargs o) {
         auto lupdate = [](py::dict o, py::dict d) {auto r(d);for (auto p: o){r[p.first]=p.second;} return r;};
-        int  prototype = liquid_getopt_str2firinterp(ftype.c_str());
-        if (prototype != LIQUID_firinterp_UNKNOWN) {
+        int  prototype = liquid_getopt_str2firfilt(ftype.c_str());
+        if (prototype != LIQUID_FIRFILT_UNKNOWN) {
             auto v = lupdate(o, py::dict("k"_a=2, "m"_a=5, "beta"_a=0.2f, "mu"_a=0.0f));
-            q = firinterp_crcf_create_rnyquist(prototype,
+            q = firinterp_crcf_create_prototype(prototype,
                 py::int_(v["k"]), py::int_(v["m"]), py::float_(v["beta"]), py::float_(v["mu"]));
         } else if (ftype == "lowpass") {
             auto v = lupdate(o, py::dict("n"_a=21, "fc"_a=0.25f, "As"_a=60.0f, "mu"_a=0.0f));
             q = firinterp_crcf_create_kaiser(
-                py::int_(v["n"]), py::float_(v["fc"]), py::float_(v["As"]), py::float_(v["mu"]));
-        } else if (ftype == "firdespm") {
-            auto v = lupdate(o, py::dict("n"_a=21, "fc"_a=0.25f, "As"_a=60.0f));
-            q = firinterp_crcf_create_firdespm(py::int_(v["n"]), py::float_(v["fc"]), py::float_(v["As"]));
-        } else if (ftype == "rect") {
-            q = firinterp_crcf_create_rect(o.contains("n") ? int(py::int_(o["n"])) : 5);
-        } else if (ftype == "dcblock" || ftype == "notch") {
-            auto v = lupdate(o, py::dict("m"_a=7, "As"_a=60.0f, "f0"_a=0.0f));
-            q = firinterp_crcf_create_notch(
-                py::int_(v["m" ]), py::float_(v["As"]), py::float_(v["f0"]));
+                py::int_(v["n"]), py::int_(v["m"]), py::float_(v["As"]));
         } else {
             throw std::runtime_error("invalid/unsupported filter type: " + ftype);
         }
     }
 
+#if 0
     // external coefficients using numpy array
     firinterp(py::array_t<float> _h) {
         // get buffer info and verify parameters
@@ -178,6 +169,9 @@ static void init_firinterp(py::module &m)
         .def(py::init<unsigned int, unsigned int, float>(),
              py::arg("M"), py::arg("m")=12, py::arg("As")=60.,
              "create default interpolator given rate")
+        .def(py::init<std::string,
+            py::kwargs>(),
+            "create filter from prototype")
         .def("__repr__", &firinterp::repr)
         .def("reset",      &firinterp::reset,      "reset object's internal state")
         .def("execute",    &firinterp::py_execute, "execute on a block of samples")
