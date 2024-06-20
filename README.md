@@ -214,7 +214,7 @@ a compatible C++14 compiler (e.g.
 `brew install pybind11` on macOS or
 `sudo apt-get install pybind11-dev` on Debian variants).
 Then install the python dependencies with
-`sudo -H python3 -m pip install pybind11 numpy matplotlib`.
+`sudo -H python3 -m pip install pybind11 numpy==1.26.4 matplotlib`.
 
 Once these dependencies are installed, you can build the liquid-dsp python
 library with
