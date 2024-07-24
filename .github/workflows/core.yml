@@ -16,21 +16,21 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+
+    - name: Setup environment (macOS)
+      if: runner.os == 'macos'
+      run: |
+        brew update
+        brew install autoconf automake
+
+    - name: Setup environment (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install -y --no-install-recommends build-essential
 
     #- name: Setup libfec
     #  run: git clone https://github.com/jgaeddert/libfec.git && cd libfec && ./configure && make && sudo make install
-
-    - name: Setup pybind-dev (Linux)
-      if: runner.os == 'Linux'
-      run: sudo apt-get install pybind11-dev
-
-    - name: Setup pybind-dev (macOS)
-      if: runner.os == 'macOS'
-      run: brew install pybind11
-
-    - name: Setup python dependencies (pip)
-      run: sudo -H python3 -m pip install pybind11 numpy==1.26.4 matplotlib
 
     - name: bootstrap
       run: ./bootstrap.sh
@@ -41,11 +41,13 @@ jobs:
     - name: make
       run: make -j 2
 
-    - name: make check-doc
-      run: make check-doc
-
     - name: make check
       run: make -j 2 check
+
+    - name: make check-doc
+      run: |
+        make check-doc-c
+        make check-doc-cc
 
     - name: make install
       run: sudo make install
@@ -56,3 +58,41 @@ jobs:
 
     - name: make check-link
       run: make check-link
+
+  python:
+    strategy:
+      fail-fast: false
+      matrix:
+        runs-on: [ubuntu-latest, macos-latest]
+
+    name: "💦 ${{ matrix.runs-on }}"
+    runs-on: ${{ matrix.runs-on }}
+    needs: standard
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup environment (macOS)
+      if: runner.os == 'macos'
+      run: |
+        brew update
+        brew install autoconf automake pybind11 virtualenv
+
+    - name: Setup environment (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install -y --no-install-recommends build-essential pybind11-dev virtualenv python3-dev
+
+    - name: bind
+      run: |
+        python3 -m venv /tmp/liquid
+        source /tmp/liquid/bin/activate
+        pip install pybind11 numpy matplotlib
+        ./bootstrap.sh
+        ./configure
+        make -j 2
+        make -j 2 python
+        make check-python
+        make check-doc-bind-cc
+        make check-doc-python
+
